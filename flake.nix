@@ -29,13 +29,13 @@
         modules = [
           {
             packages = with pkgs; [
+              catch2_3
               clang-tools
               cmake
               doxygen
               zlib
               gcc
               gnumake
-              gtest
               valgrind
               gdb
             ];
@@ -45,9 +45,15 @@
               clang-tidy.enable = true;
             };
 
-            scripts.pulse-build.exec = ''
+            scripts.build-pulsedb.exec = ''
               cmake -S . -B build
               cmake --build build
+            '';
+
+            scripts.test-pulsedb.exec = ''
+              cmake -S . -B build -DBUILD_TESTS=true
+              cmake --build build
+              ./build/tests/pulsedb-tests
             '';
           }
         ];

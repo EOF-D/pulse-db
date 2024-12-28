@@ -3,4 +3,5 @@ BasedOnStyle: LLVM
 NamespaceIndentation: All
 IndentCaseLabels: true
 IndentPPDirectives: AfterHash
+ColumnLimit: 99
 ...
