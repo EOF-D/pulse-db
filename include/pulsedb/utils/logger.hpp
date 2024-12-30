@@ -1,6 +1,6 @@
 /**
- * @brief Implements a simple logger utility.
  * @file include/pulsedb/utils/logger.hpp
+ * @brief The Logger class used for logging messages.
  */
 
 #ifndef PULSEDB_UTILS_LOGGER_HPP
@@ -78,13 +78,11 @@ namespace pulse::utils {
   class Logger {
   public:
     /**
-     * @brief Construct a new Logger object.
+     * @brief Construct a new logger object.
      * @param name The name of the logger.
-     * @note
-     *  This constructor uses the default output stream `std::cout`.
+     * @note This constructor uses the default output stream std::cout.
      */
-    explicit constexpr Logger(std::string_view name) noexcept
-        : name(name), output(std::cout) {}
+    explicit constexpr Logger(std::string_view name) noexcept : name(name), output(std::cout) {}
 
     /**
      * @brief Construct a new Logger object.
@@ -105,8 +103,7 @@ namespace pulse::utils {
      * @param fmt The format string.
      * @param args The arguments to format.
      */
-    template <typename... Args>
-    void info(std::format_string<Args...> fmt, Args &&...args) const {
+    template <typename... Args> void info(std::format_string<Args...> fmt, Args &&...args) const {
       log(LogLevel::INFO, fmt, std::forward<Args>(args)...);
     }
 
@@ -116,8 +113,7 @@ namespace pulse::utils {
      * @param fmt The format string.
      * @param args The arguments to format.
      */
-    template <typename... Args>
-    void debug(std::format_string<Args...> fmt, Args &&...args) const {
+    template <typename... Args> void debug(std::format_string<Args...> fmt, Args &&...args) const {
       log(LogLevel::DEBUG, fmt, std::forward<Args>(args)...);
     }
 
@@ -127,8 +123,7 @@ namespace pulse::utils {
      * @param fmt The format string.
      * @param args The arguments to format.
      */
-    template <typename... Args>
-    void warn(std::format_string<Args...> fmt, Args &&...args) const {
+    template <typename... Args> void warn(std::format_string<Args...> fmt, Args &&...args) const {
       log(LogLevel::WARN, fmt, std::forward<Args>(args)...);
     }
 
@@ -138,8 +133,7 @@ namespace pulse::utils {
      * @param fmt The format string.
      * @param args The arguments to format.
      */
-    template <typename... Args>
-    void error(std::format_string<Args...> fmt, Args &&...args) const {
+    template <typename... Args> void error(std::format_string<Args...> fmt, Args &&...args) const {
       log(LogLevel::ERROR, fmt, std::forward<Args>(args)...);
     }
 

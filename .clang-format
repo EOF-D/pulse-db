@@ -4,4 +4,7 @@ NamespaceIndentation: All
 IndentCaseLabels: true
 IndentPPDirectives: AfterHash
 ColumnLimit: 99
+AlignAfterOpenBracket: BlockIndent
+BinPackArguments: false
+BinPackParameters: false
 ...

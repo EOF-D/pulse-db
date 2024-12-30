@@ -1,120 +1,188 @@
 /**
  * @file include/pulsedb/storage/page.hpp
- * @brief Page class for storage.
+ * @brief The base Page class used in the storage system.
+ *
+ * All pages are fixed to 4096 bytes and are 64-byte aligned. Each page type builds upon
+ * the base PageHeader structure with additional fields specific to its purpose.
+ *
+ * Base Page Layout (4096 bytes total):
+ * +---------------------------------+ 0x0000
+ * | PageHeader (13 bytes)           |
+ * |   type:      uint8_t            | -- Page type identifier.
+ * |   pageId:    uint32_t           | -- Unique page identifier.
+ * |   lsn:       uint32_t           | -- Log sequence number.
+ * |   freeSpace: uint16_t           | -- Available free space.
+ * |   itemCount: uint16_t           | -- Number of items in page.
+ * +---------------------------------+ 0x000D
+ * | Page Specific Data (4083 bytes) | -- Type-specific content.
+ * +---------------------------------+ 0x1000
  */
 
 #ifndef PULSEDB_STORAGE_PAGE_HPP
 #define PULSEDB_STORAGE_PAGE_HPP
 
-#include <algorithm>
 #include <cstdint>
-#include <cstring>
-#include <new>
+#include <memory>
 
+/**
+ * @namespace pulse::storage
+ * @brief The namespace for the storage system.
+ */
 namespace pulse::storage {
+  /**
+   * @enum PageType
+   * @brief Represents the type of a page.
+   */
+  enum class PageType : uint8_t {
+    INVALID = 0, /**< Invalid page. */
+    INDEX = 1,   /**< Index page. */
+    DATA = 2,    /**< Data page. */
+    SPECIAL = 3  /**< Special page. */
+  };
+
+// Packing struct so that there is no padding.
 #pragma pack(push, 1)
   /**
    * @struct PageHeader
-   * @brief The header of a page.
+   * @brief Holds information about a page.
    */
   struct PageHeader {
-    uint32_t pageId;   /**< The page ID. */
-    uint32_t dataSize; /**< The size of the data stored. */
+    PageType type;      /**< The type of the page. */
+    uint32_t pageId;    /**< The id of the page. */
+    uint32_t lsn;       /**< The log sequence number of the page. */
+    uint16_t freeSpace; /**< The free space in the page. */
+    uint16_t itemCount; /**< The number of items in the page. */
   };
 #pragma pack(pop)
+} // namespace pulse::storage
 
+namespace pulse::storage {
   /**
    * @class Page
-   * @brief Represents a database page. Manages a fixed-sized block of memory.
+   * @brief The base class for all pages.
    */
   class Page {
+    friend class DiskManager; // Allow the disk manager to access the page.
+
   public:
-    static const uint32_t PAGE_SIZE = 4096; /**< The default size of a page. */
-
-    static const uint32_t HEADER_SIZE =
-        sizeof(PageHeader); /**< The size of the header in a page. */
-
-    static const uint32_t MAX_DATA_SIZE =
-        PAGE_SIZE - HEADER_SIZE; /**< The maximum size of the data in a page. */
+    static const uint32_t PAGE_SIZE = 4096;                 /**< The size of a page. */
+    static const uint32_t HEADER_SIZE = sizeof(PageHeader); /**< The size of the header. */
+    static const uint32_t MAX_FREE_SPACE =
+        PAGE_SIZE - HEADER_SIZE; /**< The maximum free space in a page. */
 
   public:
     /**
-     * @brief Constructs a new page with a given ID.
-     * @param pageId The ID of the page.
+     * @brief Construct a new page with the given ID.
+     * @param pageId the ID of the page.
+     * @param type the type of the page.
      */
-    explicit Page(uint32_t pageId) noexcept;
+    explicit Page(uint32_t pageId, PageType type) noexcept;
 
     /**
      * @brief Cleans up resources.
      */
-    ~Page() noexcept;
+    virtual ~Page() noexcept;
 
     // Disable copy operations to prevent double-frees.
     Page(const Page &) = delete;
     Page &operator=(const Page &) = delete;
 
     // Allow move operations.
-    Page(Page &&other) noexcept;
-    Page &operator=(Page &&other) noexcept;
+    Page(Page &&) noexcept;
+    Page &operator=(Page &&) noexcept;
 
     /**
-     * @brief Write data to the page.
-     * @param offset The offset to write to.
-     * @param data The data to write.
-     * @param length The length of the data.
-     * @return True if the write was successful, false otherwise.
+     * @brief Check if the page has enough free space.
+     * @param size the size to check for.
+     * @return True if there is enough space, otherwise false.
      */
-    bool write(uint32_t offset, const void *data, uint32_t length) noexcept;
+    [[nodiscard]] bool hasSpace(uint32_t size) const noexcept { return freeSpace() >= size; }
 
     /**
-     * @brief Read data from the page.
-     * @param offset The offset to read from.
-     * @param dest The destination buffer.
-     * @param length The length of the data to read.
-     * @return The number of bytes read.
+     * @brief Getters for the page class.
+     * @{
      */
-    uint32_t read(uint32_t offset, void *dest, uint32_t length) const noexcept;
 
     /**
-     * @brief Get the page ID.
-     * @return The page ID.
+     * @brief Get the type of the page.
+     * @return The type of the page.
      */
-    [[nodiscard]] uint32_t pageId() const noexcept { return header()->pageId; }
+    [[nodiscard]] PageType type() const noexcept { return header()->type; }
 
     /**
-     * @brief Get the size of the data stored in the page.
-     * @return The size of the data.
+     * @brief Get the ID of the page.
+     * @return The ID of the page.
      */
-    [[nodiscard]] uint32_t dataSize() const noexcept { return header()->dataSize; }
+    [[nodiscard]] uint32_t id() const noexcept { return header()->pageId; }
 
     /**
-     * @brief Get the page data.
-     * @return Pointer to the page data.
+     * @brief Get the log sequence number of the page.
+     * @return The log sequence number of the page.
+     */
+    [[nodiscard]] uint32_t lsn() const noexcept { return header()->lsn; }
+
+    /**
+     * @brief Get the free space in the page.
+     * @return The free space in the page.
+     */
+    [[nodiscard]] uint16_t freeSpace() const noexcept { return header()->freeSpace; }
+
+    /**
+     * @brief Get the number of items in the page.
+     * @return The number of items in the page.
+     */
+    [[nodiscard]] uint16_t itemCount() const noexcept { return header()->itemCount; }
+
+    /** @} */
+
+  protected:
+    /**
+     * @brief Const & non-const getters for page header.
+     * @{
+     */
+
+    /**
+     * @brief Gets pointer to page header.
+     * @tparam H Header type (defaults to PageHeader)
+     * @return Pointer to header.
+     */
+    template <typename H = PageHeader> [[nodiscard]] H *header() noexcept {
+      static_assert(std::is_base_of_v<PageHeader, H>, "Header type must inherit from PageHeader");
+      return reinterpret_cast<H *>(data);
+    }
+
+    /**
+     * @brief Gets const pointer to page header.
+     * @tparam H Header type (defaults to PageHeader)
+     * @return Const pointer to header.
+     */
+    template <typename H = PageHeader> [[nodiscard]] const H *header() const noexcept {
+      static_assert(std::is_base_of_v<PageHeader, H>, "Header type must inherit from PageHeader");
+      return reinterpret_cast<const H *>(data);
+    }
+
+    /** @} */
+
+    /**
+     * @brief Const & non-const getters for page data.
+     * @{
+     */
+
+    /**
+     * @brief Gets pointer to data area after header.
+     * @return Pointer to data area.
      */
     [[nodiscard]] uint8_t *getData() noexcept { return data + HEADER_SIZE; }
 
     /**
-     * @brief Get the page data.
-     * @return Const pointer to the page data.
+     * @brief Gets const pointer to data area.
+     * @return Const pointer to data area.
      */
     [[nodiscard]] const uint8_t *getData() const noexcept { return data + HEADER_SIZE; }
 
-  private:
-    /**
-     * @brief Gets a pointer to the page header.
-     * @return Pointer to the page header.
-     */
-    [[nodiscard]] PageHeader *header() noexcept { return reinterpret_cast<PageHeader *>(data); }
+    /** @} */
 
-    /**
-     * @brief Gets a const pointer to the page header.
-     * @return Const pointer to the page header.
-     */
-    [[nodiscard]] const PageHeader *header() const noexcept {
-      return reinterpret_cast<const PageHeader *>(data);
-    }
-
-    uint8_t *data; /**< Raw page data including header. */
+    uint8_t *data; /**< The data of the page. */
   };
 } // namespace pulse::storage
 
