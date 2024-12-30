@@ -50,3 +50,4 @@ build
 .pre-commit-config.yaml
 .direnv
 result
+test.db
