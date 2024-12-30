@@ -18,13 +18,11 @@ PulseDB is my attempt at a RDBMS. It is written in C++20.
 ### Build Steps
 
 ```bash
-direnv allow
-build-pulsedb
+nix develop .#pulse-dev --impure --command build-pulsedb
 ```
 
 ### Running Tests
 
 ```bash
-direnv allow
-test-pulsedb
+nix develop .#pulse-dev --impure --command test-pulsedb
 ```
