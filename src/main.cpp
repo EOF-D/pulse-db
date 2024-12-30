@@ -207,5 +207,6 @@ private:
 int main() {
   DemoREPL repl("test.db");
   repl.start();
+
   return 0;
 }
