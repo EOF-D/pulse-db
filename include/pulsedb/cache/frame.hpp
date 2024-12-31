@@ -28,7 +28,7 @@ namespace pulse::cache {
 
     /**
      * @brief Reset the frame with a new page.
-     * @param newPage The page Unique pointer to the new page.
+     * @param newPage Unique pointer to the new page.
      */
     void reset(std::unique_ptr<storage::Page> newPage) noexcept {
       page = std::move(newPage);

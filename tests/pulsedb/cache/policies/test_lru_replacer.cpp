@@ -1,5 +1,5 @@
 /**
- * @file tests/pulsedb/cache/test_lru_replacer.cpp
+ * @file tests/pulsedb/cache/policies/test_lru_replacer.cpp
  * @brief Test cases for LRUReplacer class.
  */
 
@@ -8,7 +8,7 @@
 
 using namespace pulse::cache;
 
-TEST_CASE("LRUReplacer basic operations", "[storage][replacer][lru]") {
+TEST_CASE("LRUReplacer basic operations", "[cache][policies][lru]") {
   LRUReplacer replacer;
 
   SECTION("initial state") {
@@ -37,7 +37,7 @@ TEST_CASE("LRUReplacer basic operations", "[storage][replacer][lru]") {
   }
 }
 
-TEST_CASE("LRUReplacer LRU ordering", "[storage][replacer][lru]") {
+TEST_CASE("LRUReplacer LRU ordering", "[cache][policies][lru]") {
   LRUReplacer replacer;
 
   SECTION("basic LRU order") {
@@ -77,7 +77,7 @@ TEST_CASE("LRUReplacer LRU ordering", "[storage][replacer][lru]") {
   }
 }
 
-TEST_CASE("LRUReplacer concurrent frame handling", "[storage][replacer][lru]") {
+TEST_CASE("LRUReplacer concurrent frame handling", "[cache][policies][lru]") {
   LRUReplacer replacer;
 
   SECTION("duplicate unpins") {
@@ -111,7 +111,7 @@ TEST_CASE("LRUReplacer concurrent frame handling", "[storage][replacer][lru]") {
   }
 }
 
-TEST_CASE("LRUReplacer edge cases", "[storage][replacer]") {
+TEST_CASE("LRUReplacer edge cases", "[cache][policies][lru]") {
   LRUReplacer replacer;
 
   SECTION("large frame ids") {
@@ -141,7 +141,7 @@ TEST_CASE("LRUReplacer edge cases", "[storage][replacer]") {
   }
 }
 
-TEST_CASE("LRUReplacer stress test", "[storage][replacer]") {
+TEST_CASE("LRUReplacer stress test", "[cache][policies][lru]") {
   LRUReplacer replacer;
 
   SECTION("many frames") {

@@ -10,7 +10,7 @@
 using namespace pulse::storage;
 using namespace pulse::cache;
 
-TEST_CASE("Frame basic operations", "[storage][frame]") {
+TEST_CASE("Frame basic operations", "[cache][frame]") {
   SECTION("constructor") {
     Frame frame;
 
@@ -35,7 +35,7 @@ TEST_CASE("Frame basic operations", "[storage][frame]") {
   }
 }
 
-TEST_CASE("Frame pin operations", "[storage][frame]") {
+TEST_CASE("Frame pin operations", "[cache][frame]") {
   Frame frame;
 
   SECTION("pin and unpin") {
@@ -61,7 +61,7 @@ TEST_CASE("Frame pin operations", "[storage][frame]") {
   }
 }
 
-TEST_CASE("Frame dirty flag operations", "[storage][frame]") {
+TEST_CASE("Frame dirty flag operations", "[cache][frame]") {
   Frame frame;
 
   SECTION("mark and unmark") {
