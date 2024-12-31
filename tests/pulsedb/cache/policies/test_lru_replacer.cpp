@@ -1,12 +1,12 @@
 /**
- * @file tests/pulsedb/storage/test_lru_replacer.cpp
+ * @file tests/pulsedb/cache/test_lru_replacer.cpp
  * @brief Test cases for LRUReplacer class.
  */
 
-#include "pulsedb/storage/replacer.hpp"
+#include "pulsedb/cache/policies/lru_replacer.hpp"
 #include <catch2/catch_test_macros.hpp>
 
-using namespace pulse::storage;
+using namespace pulse::cache;
 
 TEST_CASE("LRUReplacer basic operations", "[storage][replacer][lru]") {
   LRUReplacer replacer;

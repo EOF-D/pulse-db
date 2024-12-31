@@ -1,13 +1,14 @@
 /**
- * @file tests/pulsedb/storage/test_frame.cpp
+ * @file tests/pulsedb/cache/test_frame.cpp
  * @brief Test cases for Frame class.
  */
 
+#include "pulsedb/cache/frame.hpp"
 #include "pulsedb/storage/data_page.hpp"
-#include "pulsedb/storage/frame.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace pulse::storage;
+using namespace pulse::cache;
 
 TEST_CASE("Frame basic operations", "[storage][frame]") {
   SECTION("constructor") {

@@ -1,20 +1,20 @@
 /**
- * @file include/pulsedb/storage/frame.hpp
- * @brief The Frame class used in the storage system. Holds a page in memory with additional
+ * @file include/pulsedb/cache/frame.hpp
+ * @brief The Frame class used in the cache system. Holds a page in memory with additional
  * metadata.
  */
 
-#ifndef PULSEDB_STORAGE_FRAME_HPP
-#define PULSEDB_STORAGE_FRAME_HPP
+#ifndef PULSEDB_CACHE_FRAME_HPP
+#define PULSEDB_CACHE_FRAME_HPP
 
 #include "pulsedb/storage/page.hpp"
 #include <atomic>
 
 /**
- * @namespace pulse::storage
- * @brief The namespace for the storage system.
+ * @namespace pulse::cache
+ * @brief The namespace for the cache system.
  */
-namespace pulse::storage {
+namespace pulse::cache {
   /**
    * @class Frame
    * @brief A frame in the buffer pool that holds a page and its metadata.
@@ -28,9 +28,9 @@ namespace pulse::storage {
 
     /**
      * @brief Reset the frame with a new page.
-     * @param newPage Unique pointer to the new page.
+     * @param newPage The page Unique pointer to the new page.
      */
-    void reset(std::unique_ptr<Page> newPage) noexcept {
+    void reset(std::unique_ptr<storage::Page> newPage) noexcept {
       page = std::move(newPage);
       pageId = page ? page->id() : 0;
       pinCount = 0;
@@ -76,13 +76,13 @@ namespace pulse::storage {
      * @brief Get the page in the frame.
      * @return The page in the frame.
      */
-    [[nodiscard]] Page *getPage() noexcept { return page.get(); }
+    [[nodiscard]] storage::Page *getPage() noexcept { return page.get(); }
 
     /**
      * @brief Get the page in the frame.
      * @return The page in the frame.
      */
-    [[nodiscard]] const Page *getPage() const noexcept { return page.get(); }
+    [[nodiscard]] const storage::Page *getPage() const noexcept { return page.get(); }
 
     /**
      * @brief Check if the frame is unpinned.
@@ -110,11 +110,11 @@ namespace pulse::storage {
     /** @} */
 
   private:
-    std::unique_ptr<Page> page;     /**< The page in the frame. */
-    uint32_t pageId;                /**< The page ID. */
-    std::atomic<uint32_t> pinCount; /**< The pin count. */
-    std::atomic<bool> dirty;        /**< Whether the page is dirty or not. */
+    std::unique_ptr<storage::Page> page; /**< The page in the frame. */
+    uint32_t pageId;                     /**< The page ID. */
+    std::atomic<uint32_t> pinCount;      /**< The pin count. */
+    std::atomic<bool> dirty;             /**< Whether the page is dirty or not. */
   };
-} // namespace pulse::storage
+} // namespace pulse::cache
 
-#endif // PULSEDB_STORAGE_FRAME_HPP
+#endif // PULSEDB_CACHE_FRAME_HPP
