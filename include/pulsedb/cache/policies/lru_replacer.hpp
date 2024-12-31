@@ -28,53 +28,19 @@ namespace pulse::cache {
      * @brief Remove a frame from replacement consideration.
      * @param frameId The ID of the frame to remove.
      */
-    void pin(size_t frameId) override {
-      std::lock_guard lock(mutex);
-
-      auto it = frameMap.find(frameId);
-      if (it != frameMap.end()) {
-        frameList.erase(it->second);
-        frameMap.erase(it);
-      }
-    }
+    void pin(size_t frameId) override;
 
     /**
      * @brief Record a frame access, moving it to most recently used.
      * @param frameId The ID of the frame that was accessed.
      */
-    void unpin(size_t frameId) override {
-      std::lock_guard lock(mutex);
-
-      // If frame is already tracked, remove the old entry.
-      auto it = frameMap.find(frameId);
-      if (it != frameMap.end()) {
-        frameList.erase(it->second);
-        frameMap.erase(it);
-      }
-
-      // Add to front of LRU list.
-      frameList.push_front(frameId);
-      frameMap[frameId] = frameList.begin();
-    }
+    void unpin(size_t frameId) override;
 
     /**
      * @brief Get the least recently used frame.
      * @return The ID of the LRU frame, or nullopt if no frames available.
      */
-    [[nodiscard]] std::optional<size_t> victim() override {
-      std::lock_guard lock(mutex);
-
-      if (frameList.empty()) {
-        return std::nullopt;
-      }
-
-      // Get victim from back of list.
-      size_t victimId = frameList.back();
-      frameList.pop_back();
-      frameMap.erase(victimId);
-
-      return victimId;
-    }
+    [[nodiscard]] std::optional<size_t> victim() override;
 
   private:
     mutable std::mutex mutex;    /**< Mutex for thread safety. */
