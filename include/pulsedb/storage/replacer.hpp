@@ -6,10 +6,10 @@
 #ifndef PULSEDB_STORAGE_REPLACER_HPP
 #define PULSEDB_STORAGE_REPLACER_HPP
 
+#include <list>
 #include <mutex>
 #include <optional>
-#include <shared_mutex>
-#include <vector>
+#include <unordered_map>
 
 /**
  * @namespace pulse::storage
@@ -25,28 +25,22 @@ namespace pulse::storage {
     virtual ~Replacer() = default;
 
     /**
-     * @brief Record a frame access, updating it's position in order.
-     * @param frameId The ID of the accessed frame.
+     * @brief Record a frame as pinned, removing it from eviction candidates.
+     * @param frameId The ID of the frame to pin.
      */
-    virtual void recordAccess(size_t frameId) = 0;
+    virtual void pin(size_t frameId) = 0;
 
     /**
-     * @brief Remove a frame from replacement candidates.
-     * @param frameId The ID of frame to remove.
+     * @brief Record a frame access, marking it as unpinned.
+     * @param frameId The ID of the frame to unpin.
      */
-    virtual void remove(size_t frameId) = 0;
+    virtual void unpin(size_t frameId) = 0;
 
     /**
-     * @brief Select a victim frame for removal.
-     * @return The frame ID to remove, or nullopt if none available.
+     * @brief Select a victim frame for eviction based on the policy.
+     * @return The frame ID to evict, or nullopt if no frames are available.
      */
     [[nodiscard]] virtual std::optional<size_t> victim() = 0;
-
-    /**
-     * @brief Get current number of frames.
-     * @return The number of frames.
-     */
-    [[nodiscard]] virtual size_t size() const = 0;
   };
 
   /**
@@ -56,68 +50,67 @@ namespace pulse::storage {
   class LRUReplacer : public Replacer {
   public:
     /**
-     * @brief Construct a new replacer with the given capacity.
-     * @param capacity Maximum number of frames to track.
+     * @brief Constructs a new LRU replacer.
      */
-    explicit LRUReplacer(size_t capacity = 1024) : capacity(capacity) { frames.reserve(capacity); }
+    LRUReplacer() = default;
 
     /**
-     * @brief Record a frame access, updating it's position in order.
-     * @param frameId The ID of the accessed frame.
+     * @brief Remove a frame from replacement consideration.
+     * @param frameId The ID of the frame to remove.
      */
-    void recordAccess(size_t frameId) override {
-      std::unique_lock lock(mutex); // Exclusive access.
+    void pin(size_t frameId) override {
+      std::lock_guard lock(mutex);
 
-      // Remove if already present in the list.
-      for (auto it = frames.begin(); it != frames.end(); ++it) {
-        if (*it == frameId) {
-          frames.erase(it);
-          break;
-        }
-      }
-
-      // If at capacity, remove oldest.
-      if (frames.size() >= capacity) {
-        frames.erase(frames.begin());
-      }
-
-      // Add to the back of the list.
-      frames.push_back(frameId);
-    }
-
-    void remove(size_t frameId) override {
-      std::unique_lock lock(mutex);
-
-      // Remove if present in the list.
-      for (auto it = frames.begin(); it != frames.end(); ++it) {
-        if (*it == frameId) {
-          frames.erase(it);
-          break;
-        }
+      auto it = frameMap.find(frameId);
+      if (it != frameMap.end()) {
+        frameList.erase(it->second);
+        frameMap.erase(it);
       }
     }
 
+    /**
+     * @brief Record a frame access, moving it to most recently used.
+     * @param frameId The ID of the frame that was accessed.
+     */
+    void unpin(size_t frameId) override {
+      std::lock_guard lock(mutex);
+
+      // If frame is already tracked, remove the old entry.
+      auto it = frameMap.find(frameId);
+      if (it != frameMap.end()) {
+        frameList.erase(it->second);
+        frameMap.erase(it);
+      }
+
+      // Add to front of LRU list.
+      frameList.push_front(frameId);
+      frameMap[frameId] = frameList.begin();
+    }
+
+    /**
+     * @brief Get the least recently used frame.
+     * @return The ID of the LRU frame, or nullopt if no frames available.
+     */
     [[nodiscard]] std::optional<size_t> victim() override {
-      std::unique_lock lock(mutex);
-      if (frames.empty())
-        return std::nullopt;
+      std::lock_guard lock(mutex);
 
-      // Return least recently used frame.
-      size_t victimId = frames.front();
-      frames.erase(frames.begin());
+      if (frameList.empty()) {
+        return std::nullopt;
+      }
+
+      // Get victim from back of list.
+      size_t victimId = frameList.back();
+      frameList.pop_back();
+      frameMap.erase(victimId);
 
       return victimId;
     }
 
-    [[nodiscard]] size_t size() const override {
-      std::shared_lock lock(mutex);
-      return frames.size();
-    }
-
   private:
-    const size_t capacity;           /**< Maximum frames to track. */
-    std::vector<size_t> frames;      /**< Frame IDs in LRU order (oldest first). */
-    mutable std::shared_mutex mutex; /**< Reader-writer lock. */
+    mutable std::mutex mutex;    /**< Mutex for thread safety. */
+    std::list<size_t> frameList; /**< List of frame IDs in LRU order. */
+    std::unordered_map<size_t, std::list<size_t>::iterator>
+        frameMap; /**< Frame to list positions. */
   };
 
 } // namespace pulse::storage
