@@ -76,13 +76,15 @@ namespace pulse::cache {
      * @brief Get the page in the frame.
      * @return The page in the frame.
      */
-    [[nodiscard]] storage::Page *getPage() noexcept { return page.get(); }
+    [[nodiscard]] storage::Page *getPage() noexcept { return page ? page.get() : nullptr; }
 
     /**
      * @brief Get the page in the frame.
      * @return The page in the frame.
      */
-    [[nodiscard]] const storage::Page *getPage() const noexcept { return page.get(); }
+    [[nodiscard]] const storage::Page *getPage() const noexcept {
+      return page ? page.get() : nullptr;
+    }
 
     /**
      * @brief Check if the frame is unpinned.
